@@ -1,0 +1,221 @@
+<html>
+
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" />
+        <title>ArcGIS API for JavaScript Tutorials: Display a map</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+            integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+        <style>
+            html,
+            body,
+            #viewDiv {
+                padding: 0;
+                margin: 0;
+                height: 100%;
+
+            }
+
+            div {
+                margin: 0;
+                padding: 0;
+            }
+
+            .test {
+                height: 100%
+            }
+        </style>
+
+        <link rel="stylesheet" href="https://js.arcgis.com/4.20/esri/themes/light/main.css">
+        <script src="https://js.arcgis.com/4.20/"></script>
+        <script src='JS/defExpression.js' ></script>
+        <script>
+            require(["esri/config", "esri/Map", "esri/views/MapView", "esri/layers/FeatureLayer",
+                'esri/tasks/QueryTask', 'esri/rest/support/Query', "esri/widgets/TimeSlider"
+                
+
+            ], function (esriConfig,
+                Map, MapView, FeatureLayer, QueryTask, Query, TimeSlider) {
+                  
+                var defexp = new defExpressionBuilder()
+                let avgCasualties = {
+                    onStatisticField: 'Number_of_Casualties',
+                    outStatisticFieldName: 'Casualties_avg',
+                    statisticType: 'avg'
+                }
+                let totalCasualties = {
+                    onStatisticField: 'Number_of_Casualties',
+                    outStatisticFieldName: 'Casualties_sum',
+                    statisticType: 'sum'
+                }
+                let avgVehicles = {
+                    onStatisticField: 'Number_of_Vehicles',
+                    outStatisticFieldName: 'Vehicles_avg',
+                    statisticType: 'avg'
+                }
+                let totalVehicles = {
+                    onStatisticField: 'Number_of_Vehicles',
+                    outStatisticFieldName: 'Vehicles_sum',
+                    statisticType: 'sum'
+                }
+
+               
+                apiKey = window.location.hash.split('&')[0].substring(14)
+                featureUrl =
+                    'https://services3.arcgis.com/Sv1wmwxHJ20heWGz/arcgis/rest/services/UK_Traffic_Accidents_WFL1/FeatureServer/1'
+
+
+
+                const map = new Map({
+                    basemap: "topo" // Basemap layer service,
+                });
+                
+                const view = new MapView({
+                    map: map,
+                    center: [-.19117, 51.489096], // Longitude, latitude
+                    zoom: 13, // Zoom level
+                    container: "viewDiv" // Div element
+                });
+
+                const featureLayer = new FeatureLayer({
+                    //apiKey: apiKey,
+                    url: featureUrl,
+                    outFields: ["*"],
+                    popupTemplate: {
+                        title: "{OBJECTID }",
+                        content: "Date:{Date}. Time:{Time}"
+                    },
+                    definitionExpression: '',
+                    minScale: 0
+                });
+
+
+                map.add(featureLayer);
+
+                view.when(() => {
+
+                    let selectRoadType = document.getElementById('Road_Type')
+                    let selectWeather = document.getElementById('Weather')
+                    let queryButton = document.getElementById('statistics')
+
+                    selectRoadType.addEventListener('change',changeExpression)
+                    selectWeather.addEventListener('change',changeExpression)
+
+                    queryButton.addEventListener('click', (event) => {
+                        let query = featureLayer.createQuery()
+                        query.outStatistics = [totalCasualties, avgCasualties, totalVehicles,
+                            avgVehicles
+                        ]
+                        featureLayer.queryFeatures(query).then(function (response) {
+                            let stats = response.features[0].attributes
+                            let table = document.getElementById('statsTable')
+                            table.innerHTML = ''
+                            for (let x in stats) {
+                                table.innerHTML += `${x} ${stats[x]}\n`
+                            }
+                        }).catch(err => console.log(err))
+                    })
+                })
+
+                function changeExpression(event)
+                {
+                    newValue = event.target.value
+                    keyName = event.target.name
+                    
+                    defexp.removeExpression(keyName)
+                    if(newValue != '')
+                        defexp.addExpression(keyName,newValue)
+                    let newExpression = defexp.buildExpression()
+                   
+                    featureLayer.definitionExpression = newExpression
+                  
+                }
+
+                const timeSlider = new TimeSlider({
+                    container: 'timeSlider',
+                    view: view,
+                    timeVisible: true,
+                    loop: true
+                })
+
+                view.whenLayerView(featureLayer)
+                    .then(function (layerView) {
+                        // The layerview for the layer
+                        timeSlider.fullTimeExtent = layerView.layer.timeInfo.fullTimeExtent
+                        timeSlider.stops = {
+                            interval:{
+                                unit:'months',
+                                value:1
+                            }
+                        }
+                        console.log(timeSlider.stops)
+                        
+                    })
+                    .catch(function (error) {
+                        // An error occurred during the layerview creation
+                        console.log(error)
+                    });
+
+                view.ui.add(timeSlider,'bottom-left')
+
+            });
+        </script>
+
+
+    </head>
+
+    <body>
+        <div class='container test'>
+            <div class='row test'>
+                <div id="viewDiv" class='col-10 test'><div id='timeSlider'></div></div>
+                
+                <div class='col-2 test'>
+                    <div class='row '>
+                        <div class='col-12 test'>
+                            <label>Road Type</label>
+                            <select name="Road_Type" id="Road_Type">
+                                <option value=''>Any</option>
+                                <option value="Road_Type = 'Dual carriageway'">Dual carriageway</option>
+                                <option value="Road_Type = 'One way street'">One way street</option>
+                                <option value="Road_Type = 'Roundabout'">Roundabout</option>
+                                <option value="Road_Type = 'Single carriageway'">Single carriageway</option>
+                                <option value="Road_Type = 'Slip road'">Slip road</option>
+                                <option value="Road_Type = 'Unkown'">Unkown</option>
+                            </select>
+                        </div>
+                        <div class='col-12 test'>
+                            <label>Weather</label>
+                            <select name="Weather" id="Weather">
+                                <option value=''>Any</option>
+                                <option value="Weather_Conditions = 'Fine with high winds'">Fine with high winds
+                                </option>
+                                <option value="Weather_Conditions = 'Fine without high winds'">Fine without high winds
+                                </option>
+                                <option value="Weather_Conditions = 'Fog or mist'">Fog or mist</option>
+                                <option value="Weather_Conditions = 'Other'">Other</option>
+                                <option value="Weather_Conditions = 'Raining with high winds'">Raining with high winds
+                                </option>
+                                <option value="Weather_Conditions = 'Raining without high winds'">Raining without high
+                                    winds</option>
+                                <option value="Weather_Conditions = 'Snowing with high winds'">Snowing with high winds
+                                </option>
+                                <option value="Weather_Conditions = 'Snowing without high winds'">Snowing without high
+                                    winds</option>
+                                <option value="Weather_Conditions = 'Unkown'">Unkown</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class='row '>
+                        <button id='statistics'>get statistics</button>
+                        <div id='statsTable'>
+
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </body>
+
+</html>

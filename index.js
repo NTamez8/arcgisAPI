@@ -11,7 +11,19 @@ app.use(cors())
 app.use(express.static('static'))
 app.get('/',(req,res)=>{
 
+    res.sendFile(__dirname+'/signIn.html')
+
+
+})
+app.get('/base',(req,res)=>{
+
     res.sendFile(__dirname+'/base.html')
+
+
+})
+app.get('/companyMap',(req,res)=>{
+
+    res.sendFile(__dirname+'/companyMap.html')
 
 
 })
