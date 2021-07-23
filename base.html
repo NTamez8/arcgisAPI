@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basemap</title>
+    <link rel="stylesheet" href="https://js.arcgis.com/4.19/esri/themes/light/main.css" />
+    <script src="https://js.arcgis.com/4.19/"></script>
+    <style>
+        html,
+        body,
+        #viewDiv {
+            padding: 0;
+            margin: 0;
+            height: 100%;
+            width: 100%;
+        }
+
+        #info {
+            padding: 14px;
+            border-radius: 5px;
+            width: 25%;
+        }
+    </style>
+    <script>
+        require(["esri/Map", "esri/views/MapView"],function(Map, MapView){
+        const map = new Map({
+            basemap: "streets"
+        });
+        const view = new MapView({
+            container:"viewDiv",
+            map:map,
+            zoom:  4,
+            center:[15,65]
+        });
+         });
+        </script>
+</head>
+<body>
+    <div id='viewDiv'></div>
+</body>
+</html>
